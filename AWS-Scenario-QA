@@ -1,0 +1,54 @@
+Cost-Saving & Performance Optimization
+Scenario 1: You need to optimize a highly transactional system hosted on AWS to reduce costs while improving performance. Describe a cost-effective strategy to move from Provisioned IOPS SSD (io1) to General Purpose SSD (gp3) volumes. How would you ensure minimal performance degradation during this transition?
+Solution:
+
+STEP 1 — Analyze Current Performance
+Before touching storage, gather real I/O metrics from CloudWatch:
+VolumeReadOps
+VolumeWriteOps
+VolumeReadBytes
+VolumeWriteBytes
+BurstBalance (if gp2 was involved)
+VolumeQueueLength
+VolumeThroughputPercentage
+Because most io1 volumes are over-provisioned. You often only need 5–40% of the IOPS you pay for.
+
+STEP 2 — Right-Size gp3 IOPS and Throughput
+Choose gp3 settings based on what the system actually uses (not the io1 provisioned value).
+Example:
+io1 provisioned: 10,000 IOPS
+Actual CloudWatch usage: 2,000–4,000 IOPS, peaks at 5,000
+gp3 provisioning:
+5,500 IOPS
+250 MB/s throughput
+Cost drops 70–80% while performance stays above peak needs.
+
+STEP 3 — Convert io1 → gp3 Using "Modify Volume" (Online, No Downtime)
+AWS EBS supports online volume modification.
+Go to EC2 → Elastic Block Store → Volumes
+Select the io1 volume
+Choose Actions → Modify Volume
+Change:
+Volume Type → gp3
+Set provisioned IOPS and Throughput
+Apply changes
+No reboot, no detaching, and no downtime.
+EBS will enter a modifying state but volume stays available and performance is maintained.
+
+STEP 4 — Monitor During the Transition
+Use CloudWatch & CloudWatch Logs:
+Check VolumeModification events
+Validate IOPS and throughput
+Ensure no increase in:
+VolumeQueueLength
+Latency metrics (VolumeTotalReadTime, VolumeTotalWriteTime)
+If performance dips:
+You can instantly boost gp3 IOPS/MBps (still cheaper than io1).
+
+STEP 5 — Validate at Application Layer
+Run synthetic or real load tests:
+High TPS tests
+Database write-intensive operations
+Query latency checks
+Batch vs. real-time workload patterns
+
